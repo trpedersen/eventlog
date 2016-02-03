@@ -6,15 +6,13 @@ import (
 	"os"
 	"sync"
 
-	"github.com/trpedersen/workqueue"
 	"github.com/trpedersen/eventlog/eventlogger"
+	"github.com/trpedersen/workqueue"
 )
 
 const (
 	MAXWORKERS = 10
 )
-
-
 
 type fileEventLogger struct {
 	topicFiles map[string]*os.File
@@ -69,7 +67,7 @@ func (job *fileEventLogJob) Execute() error {
 	if err != nil {
 		return err
 	}
-	if _, err = fmt.Fprintf(topicFile, "[%s] %s\n", job.event.Time, job.event.Data); err != nil {
+	if _, err = fmt.Fprintf(topicFile, "[%37s] %10s\n", job.event.Time, job.event.Data); err != nil {
 		log.Printf("Error writing event, err: %s", err)
 	}
 	return err

@@ -7,9 +7,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/trpedersen/eventlog/filelogger"
 	"github.com/trpedersen/eventlog/eventlogger"
-
+	"github.com/trpedersen/eventlog/filelogger"
 )
 
 var eventLog = filelogger.NewFileEventLogger()

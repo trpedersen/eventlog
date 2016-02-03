@@ -13,7 +13,7 @@ import (
 
 const (
 	COUNT      = 100
-	RANDSTRLEN = 100
+	RANDSTRLEN = 10
 )
 
 func run(port string, topic string, threads int, count int) {
