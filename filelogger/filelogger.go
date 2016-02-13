@@ -1,44 +1,74 @@
 package filelogger
 
 import (
-	"fmt"
+	"encoding/gob"
 	"log"
 	"os"
 	"sync"
 
 	"github.com/trpedersen/eventlog/eventlogger"
-	"github.com/trpedersen/workqueue"
+	"github.com/trpedersen/pubsub"
 )
 
 const (
 	MAXWORKERS = 10
 )
 
-type fileEventLogger struct {
-	topicFiles map[string]*os.File
-	workqueue  workqueue.WorkQueue
+type fileLogger struct {
+	files map[string]*os.File
+	encoders map[string]*gob.Encoder
+	hub  pubsub.Hub
+	subscriptions map[string]pubsub.Subscription
+	log chan eventlogger.Event
+	quit chan struct{}
 }
 
-func NewFileEventLogger() eventlogger.EventLogger {
-	workqueue, err := workqueue.NewWorkQueue(MAXWORKERS)
-	if err != nil {
-		panic(err)
+func NewFileLogger() eventlogger.EventLogger {
+	logger := &fileLogger{
+		files: make(map[string]*os.File),
+		encoders: make(map[string]*gob.Encoder),
+		hub:  pubsub.NewHub(),
+		subscriptions: make(map[string]pubsub.Subscription),
+		log: make(chan eventlogger.Event),
 	}
-	return &fileEventLogger{
-		topicFiles: make(map[string]*os.File),
-		workqueue:  workqueue,
-	}
+	go logger.run()
+	return logger
 }
 
-func (logger *fileEventLogger) Log(event eventlogger.Event) (err error) {
-	job := &fileEventLogJob{
-		logger: logger,
-		event:  event,
+func (logger *fileLogger) run() {
+	run:
+	for {
+		select {
+		case <-logger.quit:
+			break run
+		case event := <-logger.log:
+			logger
+		}
 	}
-	return logger.workqueue.Enqueue(job)
+	close(logger.quit)
+	return
 }
 
-func (logger *fileEventLogger) getTopicFile(topic string) (*os.File, error) {
+func (logger *fileLogger) Log(event eventlogger.Event) (err error) {
+
+	logger.log <- event
+	return nil
+	//msg := pubsub.NewMsg(event.Topic, event.Bytes())
+	//logger.hub.Publish()
+}
+
+func (logger *fileLogger) Halt(){
+	select {
+	case <-logger.quit: // already closed
+		return nil
+	default:
+		logger.quit <- struct{}{}
+	}
+	<-logger.quit
+	return nil
+}
+
+func (logger *fileLogger) getTopicFile(topic string) (*os.File, error) {
 
 	topicFile, exists := logger.topicFiles[topic]
 	var err error
@@ -53,12 +83,13 @@ func (logger *fileEventLogger) getTopicFile(topic string) (*os.File, error) {
 			return nil, err
 		}
 		logger.topicFiles[topic] = topicFile
+		logger.encoders[topic] = gob.NewDecoder(topicFile)
 	}
 	return topicFile, err
 }
 
 type fileEventLogJob struct {
-	logger *fileEventLogger
+	logger *fileLogger
 	event  eventlogger.Event
 }
 
@@ -67,7 +98,8 @@ func (job *fileEventLogJob) Execute() error {
 	if err != nil {
 		return err
 	}
-	if _, err = fmt.Fprintf(topicFile, "[%37s] %10s\n", job.event.Time, job.event.Data); err != nil {
+//	if _, err = fmt.Fprintf(topicFile, "[%37s] %10s\n", job.event.Time, job.event.Data); err != nil {
+	if err = job.logger.encoders[.Write(topicFile, binary.LittleEndian, job.event); err != nil {
 		log.Printf("Error writing event, err: %s", err)
 	}
 	return err

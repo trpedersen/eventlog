@@ -48,7 +48,8 @@ func run(pipe *os.File, topic string, threads int, count int) {
 
 func main() {
 	///port := flag.String("port", "8080", "port [8080]")
-	pipe, err := os.OpenFile("//./pipe/eventlog", os.O_RDWR, os.ModeNamedPipe)
+//	pipe, err := os.OpenFile("//./pipe/eventlog", os.O_RDWR, os.ModeNamedPipe)
+	pipe, err := os.OpenFile("eventlog", os.O_RDWR, os.ModeNamedPipe)
 	defer pipe.Close()
 	if err != nil {
 		panic(err)

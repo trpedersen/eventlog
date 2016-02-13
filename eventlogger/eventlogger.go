@@ -3,6 +3,8 @@ package eventlogger
 import (
 	"fmt"
 	"time"
+	"bytes"
+	"encoding/gob"
 )
 
 //type Event interface {
@@ -30,6 +32,13 @@ func (event Event) ToString() string {
 	return fmt.Sprintf("[%s] %s", event.Time, event.Data)
 }
 
+func (event Event) Bytes() []byte {
+	var buf bytes.Buffer
+	encoder := gob.NewEncoder(&buf)
+	encoder.Encode(event)
+	return buf.Bytes()
+}
+
 //func (event *basicEvent) GetTime() time.Time {
 //	return event.time
 //}
@@ -45,4 +54,5 @@ func (event Event) ToString() string {
 
 type EventLogger interface {
 	Log(event Event) error
+	Halt()
 }

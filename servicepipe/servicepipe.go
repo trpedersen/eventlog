@@ -36,7 +36,7 @@ func eventsHandler(w http.ResponseWriter, r *http.Request) {
 
 func Run() {
 
-	pipe, err := os.OpenFile("//./pipe/eventlog", os.O_RDONLY|os.O_CREATE, os.ModeNamedPipe)
+	pipe, err := os.OpenFile("eventlog2", os.O_RDWR|os.O_CREATE, os.ModeNamedPipe)
 	println(pipe, err)
 	//	pipe, err := os.OpenFile("\\\\.\\pipes\\eventlog", os.O_RDWR|os.O_CREATE, os.ModeNamedPipe)
 	if err != nil {
