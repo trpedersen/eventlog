@@ -7,23 +7,21 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-
-	"github.com/trpedersen/rand"
 )
 
 const (
 	COUNT      = 100
-	RANDSTRLEN = 10
 )
 
+//strings.NewReader(rand.RandStr(RANDSTRLEN, "alphanum"))
 func run(port string, topic string, threads int, count int) {
 	var wg sync.WaitGroup
 	for i := 0; i < threads; i++ {
 		wg.Add(1)
 		go func(thread int) {
 			defer wg.Done()
-			for j := 0; j < count; j++ {
-				response, err := http.Post(fmt.Sprintf("http://localhost:%s/eventlogs/%s", port, topic), "text/plain", strings.NewReader(rand.RandStr(RANDSTRLEN, "alphanum")))
+			for j := 1; j <= count; j++ {
+				response, err := http.Post(fmt.Sprintf("http://localhost:%s/eventlogs/%s", port, topic), "text/plain", strings.NewReader(fmt.Sprintf("thd# %d evt# %d", thread, j)))
 				if err != nil {
 					log.Printf("%d POST error: %s\n", thread, err)
 					return

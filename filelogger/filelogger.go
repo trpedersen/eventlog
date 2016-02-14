@@ -15,34 +15,35 @@ const (
 )
 
 type fileLogger struct {
-	files map[string]*os.File
-	encoders map[string]*gob.Encoder
-	hub  pubsub.Hub
+	files         map[string]*os.File
+	encoders      map[string]*gob.Encoder
+	hub           pubsub.Hub
 	subscriptions map[string]pubsub.Subscription
-	log chan eventlogger.Event
-	quit chan struct{}
+	log           chan eventlogger.Event
+	quit          chan struct{}
 }
 
 func NewFileLogger() eventlogger.EventLogger {
+	hub, _ := pubsub.NewHub()
 	logger := &fileLogger{
-		files: make(map[string]*os.File),
-		encoders: make(map[string]*gob.Encoder),
-		hub:  pubsub.NewHub(),
+		files:         make(map[string]*os.File),
+		encoders:      make(map[string]*gob.Encoder),
+		hub:           hub,
 		subscriptions: make(map[string]pubsub.Subscription),
-		log: make(chan eventlogger.Event),
+		log:           make(chan eventlogger.Event),
 	}
 	go logger.run()
 	return logger
 }
 
 func (logger *fileLogger) run() {
-	run:
+run:
 	for {
 		select {
 		case <-logger.quit:
 			break run
 		case event := <-logger.log:
-			logger
+			logger.logEvent(event)
 		}
 	}
 	close(logger.quit)
@@ -51,26 +52,43 @@ func (logger *fileLogger) run() {
 
 func (logger *fileLogger) Log(event eventlogger.Event) (err error) {
 
+	// todo: make this async
 	logger.log <- event
 	return nil
-	//msg := pubsub.NewMsg(event.Topic, event.Bytes())
-	//logger.hub.Publish()
 }
 
-func (logger *fileLogger) Halt(){
+func (logger *fileLogger) Halt() {
 	select {
 	case <-logger.quit: // already closed
-		return nil
+		return
 	default:
 		logger.quit <- struct{}{}
 	}
 	<-logger.quit
-	return nil
+	return
+}
+
+func (logger *fileLogger) logEvent(event eventlogger.Event) (err error) {
+	file, err := logger.getTopicFile(event.Topic)
+	if err != nil {
+		return err
+	}
+	//if _, err = fmt.Fprintf(file, "[%37s] %10s\n", event.Time, event.Data); err != nil {
+	var bytes []byte
+	bytes, err = event.MarshalBinary()
+	if err != nil {
+		log.Printf("Error marshalling event, err: %s", err)
+		return err
+	}
+	if _, err = file.Write(bytes); err != nil {
+		log.Printf("Error writing event, err: %s", err)
+	}
+	return err
 }
 
 func (logger *fileLogger) getTopicFile(topic string) (*os.File, error) {
 
-	topicFile, exists := logger.topicFiles[topic]
+	topicFile, exists := logger.files[topic]
 	var err error
 	if !exists {
 		var mutex = &sync.Mutex{}
@@ -82,32 +100,10 @@ func (logger *fileLogger) getTopicFile(topic string) (*os.File, error) {
 			log.Printf("Error opening file, topic: %s, err: %s\n", topic, err)
 			return nil, err
 		}
-		logger.topicFiles[topic] = topicFile
-		logger.encoders[topic] = gob.NewDecoder(topicFile)
+		logger.files[topic] = topicFile
+		//logger.encoders[topic] = gob.NewDecoder(topicFile)
 	}
 	return topicFile, err
-}
-
-type fileEventLogJob struct {
-	logger *fileLogger
-	event  eventlogger.Event
-}
-
-func (job *fileEventLogJob) Execute() error {
-	topicFile, err := job.logger.getTopicFile(job.event.Topic)
-	if err != nil {
-		return err
-	}
-//	if _, err = fmt.Fprintf(topicFile, "[%37s] %10s\n", job.event.Time, job.event.Data); err != nil {
-	if err = job.logger.encoders[.Write(topicFile, binary.LittleEndian, job.event); err != nil {
-		log.Printf("Error writing event, err: %s", err)
-	}
-	return err
-}
-
-func (job *fileEventLogJob) Report(err error) {
-	// ignore it
-	return
 }
 
 //func (this *EventLog) ReadEvents(topic string) ([]string, error) {

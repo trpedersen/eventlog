@@ -6,10 +6,12 @@ import (
 	"github.com/trpedersen/io"
 	"log"
 	"os"
+	"github.com/trpedersen/eventlog/eventlogger"
+	"github.com/trpedersen/eventlog/constants"
 )
 
 const (
-	RECLEN = int64(51) // + 1L
+	RECLEN = int64(constants.EVENT_BYTES_LEN)
 )
 
 func main() {
@@ -23,9 +25,6 @@ func main() {
 	}
 
 	var recordNumber int
-	//var offset int64
-	//var length int
-	var n int
 	for {
 		//fmt.Print("\noffset length: ")
 		fmt.Print("\nrecord number: ")
@@ -41,9 +40,16 @@ func main() {
 		//	fmt.Println("Enter an int\n")
 		//	continue
 		//}
-		bytes := make([]byte, RECLEN-1)
-		n, err = file.ReadAt(bytes, int64(recordNumber)*RECLEN)
-		fmt.Printf("%d bytes read, err: %s, bytes: %s", n, err, bytes)
-		//fmt.Println(offset, length)
+		bytes := make([]byte, RECLEN)
+		if _ , err = file.ReadAt(bytes, int64(recordNumber)*RECLEN); err != nil {
+			fmt.Println(err)
+		} else {
+			event := eventlogger.Event{}
+			if err = event.UnmarshalBinary(bytes); err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(event.ToString())
+			}
+		}
 	}
 }

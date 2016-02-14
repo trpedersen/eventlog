@@ -11,7 +11,7 @@ import (
 	"github.com/trpedersen/eventlog/filelogger"
 )
 
-var eventLog = filelogger.NewFileEventLogger()
+var eventLog = filelogger.NewFileLogger()
 
 //func eventsHandlerGET( w http.ResponseWriter, r *http.Request){
 //	urlParams := mux.Vars(r)
