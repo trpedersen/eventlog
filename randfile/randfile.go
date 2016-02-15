@@ -3,15 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/trpedersen/eventlog/eventlogger"
 	"github.com/trpedersen/io"
 	"log"
 	"os"
-	"github.com/trpedersen/eventlog/eventlogger"
-	"github.com/trpedersen/eventlog/constants"
 )
 
 const (
-	RECLEN = int64(constants.EVENT_BYTES_LEN)
+	BLOCK_LEN = int64(4096) //int64(constants.EVENT_BYTES_LEN)
 )
 
 func main() {
@@ -24,13 +23,13 @@ func main() {
 		return
 	}
 
-	var recordNumber int
+	var blockNumber int
 	for {
 		//fmt.Print("\noffset length: ")
-		fmt.Print("\nrecord number: ")
+		fmt.Print("\nblock number: ")
 
 		//offset, err = scanner.ReadLong()
-		recordNumber, err = scanner.ReadInt()
+		blockNumber, err = scanner.ReadInt()
 		if err != nil {
 			fmt.Println("Enter an int\n")
 			continue
@@ -40,8 +39,9 @@ func main() {
 		//	fmt.Println("Enter an int\n")
 		//	continue
 		//}
-		bytes := make([]byte, RECLEN)
-		if _ , err = file.ReadAt(bytes, int64(recordNumber)*RECLEN); err != nil {
+		bytes := make([]byte, BLOCK_LEN)
+		var n int
+		if n, err = file.ReadAt(bytes, int64(blockNumber)*BLOCK_LEN); (err != nil) && (n == 0) {
 			fmt.Println(err)
 		} else {
 			event := eventlogger.Event{}

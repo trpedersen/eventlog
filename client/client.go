@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	COUNT      = 100
+	COUNT = 100
 )
 
 //strings.NewReader(rand.RandStr(RANDSTRLEN, "alphanum"))
